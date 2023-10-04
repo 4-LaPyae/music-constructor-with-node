@@ -1,0 +1,70 @@
+<?php
+
+namespace App\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use App\Models\Media;
+use App\Models\Song;
+
+
+class StoreProducerContract implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    private $producer_id, $contract_file;
+    /**
+     * Create a new job instance.
+     *
+     * @return void
+     */
+    public function __construct($producer_id, $contract_file)
+    {
+        $this->producer_id = $producer_id;
+        $this->contract_file = $contract_file;
+    }
+
+    /**
+     * Execute the job.
+     *
+     * @return void
+     */
+    public function handle()
+    {
+
+        $media = Media::create([
+            "media_type_id" => 1,
+            "media_link" => $this->contract_file
+        ]);
+
+        // $producer = Producer::find($this->producer_id);
+        // if ($producer && $producer->contract_id) {
+        //     $contracts = explode(',', $producer->contract_id);
+        //     array_push($contracts, $media->id);
+        // }
+        // $contactIds = explode(',', $producer->media_id);
+
+        // Producer::where('id', $this->producer_id)->update([
+        //     'contact_id' => $contactIds
+        // ]);
+
+        $song_id = $validated['song_id'];
+        
+        $song = Song::find($this->song_id);
+
+        if ($song && $song->contract_id) {
+
+            $contracts = explode(',', $song->contract_id);
+            array_push($contracts, "111");
+
+            $contactIds = implode(',', $contracts);
+
+            Song::where('id', $song_id)->update([
+                'contract_id' => $contactIds
+            ]);
+        }
+    }
+}

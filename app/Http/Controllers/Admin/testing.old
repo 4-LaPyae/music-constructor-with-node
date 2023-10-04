@@ -1,0 +1,611 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Models\Singer;
+use App\Models\Media;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SingerRequest;
+use App\Http\Resources\Admin\SingerResources;
+
+class SingerController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        $page = Request()->has('page') ? Request()->get('page') : 1;
+        $limit = Request()->has('limit') ? Request()->get('limit') : 10;
+        $singertName = Request()->has('singer_name') ? Request()->get('singer_name') : '';
+        $singers = Singer::with('media:media_link')
+            ->where('aname', 'LIKE', '%' . $singertName . '%')
+            ->orWhere('name', 'LIKE', '%' . $singertName . '%')
+            ->orderBy('id', 'asc')->limit($limit)
+            ->offset(($page - 1) * $limit)
+            ->get();
+
+        $allSingers = Singer::count();
+
+
+        // $data =  $singers->map(function ($value) {
+        //     // return $value->photo;
+        //     if ($value->photo) {
+        //         $media =  Media::create([
+        //             "media_type_id" => 1,
+        //             "media_link" => $value->photo,
+        //             "description" => NULL,
+        //         ]);
+
+        //         Singer::where('id', $value->id)->update(['media_id' => $media->id]);
+        //     }
+        // });
+
+
+        return Response()->json([
+            'data' => $singers,
+            'message' => 'Successfully.',
+            'total' => $allSingers,
+            'page' => (int)$page,
+            'rowPerPages' => (int)$limit,
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(SingerRequest $request)
+    {
+        $validated = $request->validated();
+
+        return $validated;
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  \App\Models\Singer  $singer
+     * @return \Illuminate\Http\Response
+     */
+    public function show(Singer $singer)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\Singer  $singer
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Singer $singer)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Singer  $singer
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, Singer $singer)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  \App\Models\Singer  $singer
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Singer $singer)
+    {
+        //
+    }
+}
+
+
+  // $data =  $songs->map(function ($value) {
+
+        //     if ($value->singer && $value->singera) {
+        //         $album = Singer::where([
+        //             "name" => $value->singer,
+        //             "aname" => $value->singera
+        //         ])->first();
+
+        //         Song::where('id', $value->id)->update(['singer_id' => $album->id ?? NULL]);
+        //     }
+        // });
+
+
+           // $songs = Song::where('title', 'LIKE', '%' . $filterName . '%')
+        //     ->orWhere('titlea', 'LIKE', '%' . $filterName . '%')
+        //     ->orWhere('singer', 'LIKE', '%' . $filterName . '%')
+        //     ->orWhere('singera', 'LIKE', '%' . $filterName . '%')
+        //     ->orderBy('id', 'asc')
+        //     ->limit($limit)
+        //     ->offset(($page - 1) * $limit)
+        //     ->get();
+
+        $songs = DB::table('songs')
+            // ->leftJoin('medias', 'singers.media_id', '=', 'medias.id')
+            ->leftJoin('singers', 'songs.singer_id', '=', 'singers.id')
+            ->leftJoin('albums', 'songs.album_id', '=', 'albums.id')
+            ->select([
+                'songs.*',
+                // 'medias.media_link as media_link',
+                // 'singers.name as singer_name',
+                // 'albums.name as album_name',
+            ])
+            ->where(function ($query) use ($filterName) {
+                if (isset($filterName)) {
+                    $query->where('songs.title', 'LIKE', '%' . $filterName . '%')
+                        ->orWhere('songs.titlea', 'LIKE', '%' . $filterName . '%');
+                }
+                return $query;
+            })
+            ->orderBy('id', 'asc')
+            ->limit($limit)
+            ->offset(($page - 1) * $limit)
+            ->get();
+
+
+    public function rawSearch()
+    {
+
+        // $page = Request()->has('page') ? Request()->get('page') : 1;
+        // $limit = Request()->has('limit') ? Request()->get('limit') : 10;
+        $filterName = Request()->has('filter_name') ? Request()->get('filter_name') : '';
+
+
+        $songs = Song::where('title', 'LIKE', '%' . $filterName . '%')
+            ->orWhere('titlea', 'LIKE', '%' . $filterName . '%')
+            ->orderBy('id', 'asc')
+            ->limit(5)
+            ->get();
+
+        $singers = Singer::with('media')
+            ->where('aname', 'LIKE', '%' . $filterName . '%')
+            ->orWhere('name', 'LIKE', '%' . $filterName . '%')
+            ->orderBy('id', 'asc')
+            ->limit(5)
+            ->get();
+
+        $results = array_merge($singers->toArray(), $songs->toArray());
+
+
+        return Response()->json([
+            "results" => $results
+        ]);
+
+        // return Response()->json([
+        //     // 'data' => $data,
+        //     'data' => $songs,
+        //     'message' => 'Song lists.',
+        //     'total' => $songs->count(),
+        //     'page' => (int)$page,
+        //     'rowPerPages' => (int)$limit,
+        // ]);
+    }
+
+
+
+
+    public function index()
+    {
+
+        $page = Request()->has('page') ? Request()->get('page') : 1;
+        $limit = Request()->has('limit') ? Request()->get('limit') : 10;
+        $filterName = Request()->has('filter_name') ? Request()->get('filter_name') : '';
+        $type =  Request()->has('type') ? Request()->get('type') : '';
+
+        $songs = DB::table('songs')
+            ->leftJoin('singers', 'songs.singer_id', '=', 'singers.id')
+            ->leftJoin('albums', 'songs.album_id', '=', 'albums.id')
+            ->leftJoin('producers', 'songs.producer_id', '=', 'producers.id')
+            ->select([
+                'songs.id',
+                'songs.title as song_title',
+                'songs.singer_id',
+                'singers.name as singer_name',
+                'songs.album_id',
+                'albums.name as album_name',
+                'songs.producer_id',
+                'producers.name as producer_name',
+                'songs.produce as produce_date',
+            ])
+            ->where(function ($query) use ($filterName, $type) {
+                if (isset($filterName)) {
+                    if ($type == 1) {
+                        $query->where('songs.title', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('songs.titlea', 'LIKE', '%' . $filterName . '%');
+                    } elseif ($type == 2) {
+                        $query->where('singers.name', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('singers.aname', 'LIKE', '%' . $filterName . '%');
+                    } elseif ($type == 3) {
+                        $query->where('albums.name', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('albums.aname', 'LIKE', '%' . $filterName . '%');
+                    } elseif ($type == 4) {
+                        $query->orWhere('producers.name', 'LIKE', '%' . $filterName . '%');
+                    } else {
+                        $query->orWhere('songs.title', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('songs.titlea', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('singers.name', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('singers.aname', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('albums.name', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('albums.aname', 'LIKE', '%' . $filterName . '%')
+                            ->orWhere('producers.name', 'LIKE', '%' . $filterName . '%');
+                    }
+                }
+                return $query;
+            })
+
+            // ->orWhere(function ($query) use ($filterName) {
+            //     return $query->where('singers.name', 'LIKE', '%' . $filterName . '%')
+            //         ->orWhere('singers.aname', 'LIKE', '%' . $filterName . '%');
+            // })
+            // ->orWhere(function ($query) use ($filterName) {
+            //     $query->where('albums.name', 'LIKE', '%' . $filterName . '%')
+            //         ->orWhere('albums.aname', 'LIKE', '%' . $filterName . '%');
+            // })
+            ->orderBy('songs.hits', 'desc')
+            ->limit($limit)->offset(($page - 1) * $limit)
+            ->get();
+
+        $all_songs = DB::table('songs')
+            ->where(function ($query) use ($filterName) {
+                if (isset($filterName)) {
+                    $query->where('songs.title', 'LIKE', '%' . $filterName . '%');
+                }
+                return $query;
+            })
+            ->count();
+
+        return Response()->json([
+            'data' => $songs,
+            'message' => 'Song lists.',
+            'total' => $all_songs,
+            'page' => (int)$page,
+            'rowPerPages' => (int)$limit,
+        ]);
+    }
+// foreach ($songIds as $songId) {
+            //     Song::where('id', $songId)->update([
+            //         'producer_id' => $validated['producer_id'],
+            //         'contract_date' =>  $validated['contract_date'],
+            //         'expired_date' =>  $validated['expired_date']
+            //     ]);
+
+            //     StoreProducerContract::dispatchAfterResponse($songId, $media->id);
+            // }
+
+              $song = Song::find($this->song_id);
+
+        if ($song && $song->contract_id) {
+
+            $contracts = explode(',', $song->contract_id);
+            if (!$contracts) {
+                array_push($contracts, $this->media_id);
+            }
+
+            $contactIds = implode(',', $contracts);
+
+            Song::where('id', $this->song_id)->update([
+                'contract_id' => $contactIds
+            ]);
+        } else {
+            Song::where('id', $this->song_id)->update([
+                'contract_id' => $this->media_id
+            ]);
+        }
+
+
+        $album = array_map(function ($element) {
+            $song = DB::table('songs')
+                ->join('albums', function ($join) use ($element) {
+                    $join->on('albums.id', '=', 'songs.album_id')
+                        ->where('songs.album_id', '=', $element);
+                })
+                ->select([
+                    'songs.id',
+                ])
+                ->where('songs.delete_status', 1)
+                ->get();
+
+            return $song;
+        }, $albumIds);
+
+        return $album;
+
+
+        //select album in song_id
+            $songID = [];
+            if ($albumIds) {
+                Album::whereIn('id', $albumIds)->update([
+                    'producer_id' => $validated['producer_id'],
+                ]);
+                foreach ($albumIds as $album_id) {
+                    // find song with album
+                    $songs = DB::table('songs')
+                        ->join('albums', function ($join) use ($album_id) {
+                            $join->on('albums.id', '=', 'songs.album_id')
+                                ->where('songs.album_id', '=', $album_id);
+                        })
+                        ->select([
+                            'songs.id',
+                        ])
+                        ->where('songs.delete_status', 1)
+                        ->get();
+
+                    array_push($songID, ...$songs);
+                }
+
+                $output_array = array_map(function ($element) {
+                    return $element->id;
+                }, $songID);
+            }
+
+            $songIds = ($type == "Song") ? $song : $output_array;
+
+             "data": {
+              "a": 13313,
+              "b": "hhh",
+              "c": "AI86KDR17V2GNN5UID21T"
+                }
+            "d":[
+                {
+                    "e": "sdfdsdfd"
+                },
+                {
+                    "f": "fdsff"
+                }
+            ]
+
+
+
+
+"contracts":{
+    "audio":{
+        "start": "2023-03-22",
+        "end": "2023-03-22",
+    },
+    "audioKaraoke":{
+        "start": "2023-03-22",
+        "end": "2023-03-22",
+    },
+    "video":{
+        "start": "2023-03-22",
+        "end": "2023-03-22",
+    },
+    "videoKaraoke":{
+        "start": "2023-03-22",
+        "end": "2023-03-22",
+    },
+    "attachment":[
+        { "id": 001,
+        "media_link": "sdfsdfsdfds"},
+        { "id": 002,
+        "media_link": "sdfsdfsdfds"},
+    ]
+}
+
+
+$encryptMethod = "AES-128-CBC";
+
+        $key = env("SECRET_KEY");
+
+        $ivalue = substr(hash('sha256', $key), 0, 16);
+
+        $user_master_key = openssl_encrypt($string, $encryptMethod, $key, 0, $ivalue);
+        //$result = base64_encode($user_master_key);
+        $result = "gAAAAABkHyocOyxiGUH0Z3HFiA9jrD2+AdR9KMdQthBgES/6nXcKyUcoq12/SmoXZj41Sni/4AGKiPzD2rSjjkWvfB8VybVaRA==";
+        // return $result;
+        
+        return HashingOperations::decrypt($key, $key, $encryptMethod, $result);
+
+        // $decrypted = openssl_decrypt(base64_decode($result), $encryptMethod, $key, 0, $ivalue);
+
+        // return json_decode($decrypted, true, JSON_UNESCAPED_SLASHES);
+
+
+
+          function encrypt($value)
+    {
+        $key = 'SabanaWOWmeDoublePlusApplication'; //combination of 16 character
+        $iv = 'SabanaWOWmeDoubl'; //combination of 16 character
+        $method = 'aes-128-cbc';
+        $encryptedString = openssl_encrypt(
+            $value,
+            $method,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+        return base64_encode($encryptedString);
+    }
+
+    function decrypt($value)
+    {
+        $key = 'SabanaWOWmeDoublePlusApplication'; //combination of 16 character
+        $iv = 'SabanaWOWmeDoubl'; //combination of 16 character
+        $method = 'aes-128-cbc';
+        $base64 = base64_decode($value);
+        $decryptedString = openssl_decrypt(
+            $base64,
+            $method,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv
+        );
+        return $decryptedString;
+    }
+  // public function addKeys()
+    // {
+    //     //$filterName = Request()->has('filter_name') ? Request()->get('filter_name') : '';
+    //     // $Ids = Song::pluck('id')->all();
+
+    //     // Band::whereIn('id', $Ids)->update([
+    //     //     'album_key' => NULL
+    //     // ]);
+    //     // $songbak = DB::table("songsbak")->where('id', ">", 2078)->select('songsbak.album')->get();
+    //     // return $songbak;
+
+    //     // $news = Song::where('singers', null)->take(500)->get();
+
+    //     $olds = DB::table("songsold")->whereBetween('id', [15209, 16343])->take(500)->get();
+
+    //     //$olds = DB::table("songsold")->whereBetween('id', [15144, 15198])->get();
+
+    //     $news = DB::table("songs")->whereNull('singer_id')->whereBetween('id', [4799, 13168])->take(500)->get();
+
+    //     // return Response()->json([
+    //     //     // 'old' => $olds,
+    //     //     'new' => $news->count()
+    //     // ]);
+
+    //     $count = [];
+    //     $arr = [];
+
+    //     foreach ($olds as $d) {
+
+    //         $comma = explode(",", $d->artist);
+
+    //         $artist = DB::table("singers")->where('name', 'LIKE', '%' . $comma[0] . '%')->first();
+
+    //         if ($artist) {
+    //             DB::table("songs")->where('id', $d->id)->update([
+    //                 'singer_id' => $artist ? $artist->id : NULL
+    //             ]);
+    //         }
+
+    //         array_push($count, $artist);
+    //     }
+
+    //     return $count;
+
+
+    //     // $data = Song::where('album', 'LIKE', '%' . $filterName . '%');
+    //     // $data->song_key = generateUUID(21);
+    //     // $data->save();
+    //     // array_push($count, $data);
+
+    //     // return $count;
+    // }
+
+    // public function addKeys()
+    // {
+    //     $between_num =  request()->has('between_num') ? request()->get('between_num') : null;
+    //     $filter_num = is_null( $between_num) ? null : explode(',',  $between_num);
+    //     $olds = DB::table('songs')->whereNull('singer_id')->whereBetween('id',$filter_num)->get();
+    //     $arr1 = [];
+    //     foreach ($olds as $o) {
+    //         array_push($arr1, $o->id);
+    //     }
+    //     $newSongs = DB::table('songsold')->whereIn('id', $arr1)->get();
+    //     foreach ($newSongs as $d) {
+    //         if (str_contains($d->artist, ',')) {
+    //             $arr2 = explode(',', $d->artist);
+    //             $arra = explode(',',$d->artista);
+    //             $arr3 = [];
+    //             for($i = 0;$i<count($arr2);$i++){
+    //                 $singers = DB::table('singers')->where('name',$arr2[$i])->first();
+    //                 if($singers){
+    //                     array_push($arr3,$singers);
+                        
+    //                 }else{
+    //                     $newSingerStr = DB::table('singers')->insertGetId(['name' =>$arr2[$i] ?? null , 
+    //                     'aname' =>$arra[$i] ?? null ,
+    //                     'singer_key'=>'singer'.rand(100000, 999999)]);
+    //                     $results = DB::select('select * from singers where id = :id', ['id' =>$newSingerStr]);
+    //                     array_push($arr3,$results[0]);
+    //                 } 
+    //             }
+    //             $arr4 = [];
+    //             foreach ($arr3 as $s) {
+    //                     array_push($arr4, $s->id);
+    //             }
+    //             $arrToStr = implode(',', $arr4);
+    //             DB::table('songs')->where('id',$d->id)->update(['singer_id'=>$arrToStr]);
+    //         } else {
+    //             $singer_name = DB::table('singers')->where('name', $d->artist)->first();
+    //             if ($singer_name) {
+    //                 DB::table('songs')->where('id',$d->id)->update(['singer_id'=>$singer_name->id]);
+    //             } else {
+    //                     $singer_name2 = DB::table('singers')->insertGetId(['name' =>$d->artist ?? null , 
+    //                                                 'aname' =>$d->artista ?? null ,
+    //                                                 'singer_key'=>'singer'.rand(100000, 999999)]);
+    //                 DB::table('songs')->where('id',$d->id)->update(['singer_id'=>$singer_name2]);
+    //             }
+    //         }
+    //     }
+    //     return response()->json([
+    //         "message"=>"Singer Id Added Successfuly"
+    //     ]);
+    // }
+
+
+ $encryptMethod = "AES-128-ECB";
+
+        $key = env("SECRET_KEY");
+
+        // $result = "gAAAAABkHyocOyxiGUH0Z3HFiA9jrD2+AdR9KMdQthBgES/6nXcKyUcoq12/SmoXZj41Sni/4AGKiPzD2rSjjkWvfB8VybVaRA==";
+
+        $user_master_key = openssl_encrypt($string, $encryptMethod, $key);
+        $result = base64_encode($user_master_key);
+
+        // return $result;
+        // $decrypted = openssl_decrypt(base64_decode($result), $encryptMethod, $key);
+
+        // return json_decode($decrypted, true, JSON_UNESCAPED_SLASHES);
+
+
+
+         $validated['mr'] = (object) [
+            "music_title" => "ဂရေဟမ် - နွေအလှ",
+            "lyric_link" => "https://tota.aungthawdar.workers.dev/api/v1/upload/lyric/musics/1d749823-7dff-4d16-8e00-ec4174982e90",
+            "audio_link" => "https://pub-24d21c72b332494b9c34925548412890.r2.dev/1d749823-7dff-4d16-8e00-ec4174982e90/track1/track1.m3u8",
+            "download_link" => "https://pub-24d21c72b332494b9c34925548412890.r2.dev/1d749823-7dff-4d16-8e00-ec4174982e90/1d749823-7dff-4d16-8e00-ec4174982e90.zip"
+        ];
+
+        $validated['contracts'] = [
+            "audio" => (object)[
+                "start" => "2023-03-28",
+                "end" => "2023-05-31"
+            ],
+            "audioKaraoke" => [
+                "start" => "2023-03-28",
+                "end" => "2023-05-31"
+            ],
+            "video" => null,
+            "videoKaraoke" => null
+        ];
+
+        $arr = [];
+        for ($x = 0; $x <= 100; $x++) {
+            array_push($arr, $x);
+        }
+
+        return array_map(function ($v) use ($validated) {
+            $validated['song_key'] = generateUUID(21) . $v;
+            $validated['title'] = "testing song " . $v;
+            return  Song::create($validated);
+        }, $arr);
